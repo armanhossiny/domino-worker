@@ -1,0 +1,7 @@
+.idea
+*.7z
+node_modules
+.vs
+/.env
+*.log
+package-lock.json
