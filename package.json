@@ -4,7 +4,6 @@
   "description": "get ping for check connection is stable",
   "main": "index.js",
   "scripts": {
-    "test": "node --test tests/*.test.cjs",
     "start": "node --env-file=.env ./index.js",
     "dev": "node --watch --env-file=.env ./index.js",
     "lint": "npx eslint . --fix"

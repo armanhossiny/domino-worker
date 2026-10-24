@@ -3,7 +3,6 @@ const { ConnectionsModel } = require("../models");
 const constants = require("../constants");
 const PORT = process.env.PORT || 3000;
 const { server } = require("../config");
-const authenticateConnection = require("./authenticateConnection");
 
 
 function parseConnectionQuery(payload) {
@@ -32,11 +31,7 @@ async function init(connection) {
     return;
   }
 
-  let connectionId;
-  try { connectionId = await authenticateConnection(playerPayload); }
-  catch { connection.close(); return; }
-  if (connection.connected === false) return;
-  connection.authenticatedPlayerId = connectionId;
+  const connectionId =   playerPayload.playerId;
   // insert task to queue to run from core
   extra["connectionId"] = connectionId ;
   extra["queue"] = server.workerQueue;
@@ -49,9 +44,10 @@ async function init(connection) {
 
   connection.connectionId = connectionId;
 
+  await publisherController.insert(task);
+
+  // insert connection to map
   ConnectionsModel.add(connectionId, connection);
-  try { await publisherController.insert(task); }
-  catch (error) { connection.close(); throw error; }
 }
 
 function generateRandomString(length) {

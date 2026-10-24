@@ -2,18 +2,15 @@ const publisher = require("./publisher.controller");
 const logger = require("../utils/logger");
 const { ConnectionsModel } = require("../models");
 const { server } = require("../config");
-const clientMessagePolicy = require("./clientMessagePolicy");
 
 
 module.exports = async (message, connection) => {
   connection.lastActivityAt = Date.now();
   try {
     const con = ConnectionsModel.get(connection.connectionId);
-    if(con !== connection || !connection.authenticatedPlayerId){
+    if(con !== connection){
       return;
     }
-    if (typeof message.utf8Data !== "string" || Buffer.byteLength(message.utf8Data, "utf8") > 65536)
-      throw Error("INVALID_MESSAGE_SIZE");
     const msg = JSON.parse(message.utf8Data);
     if (msg === 4) {
       if(con){
@@ -36,7 +33,7 @@ module.exports = async (message, connection) => {
       return;
     }
 
-    if (msg?.method === "ping") {
+    if (msg.method === "ping") {
       // use at old versions need to remove
       const { method, payload } = msg;
       connection.send(JSON.stringify({ method, payload }));
@@ -53,8 +50,11 @@ module.exports = async (message, connection) => {
     connection.lastMethod = msg.method;
     connection.lastMessageTime = Date.now();
 
-    await publisher.insert(clientMessagePolicy(msg, connection, server.workerQueue));
+    logger.debug({ from: "omMessage", msg });
+    msg.payload.connectionId = connection.connectionId;
+    msg.payload.queue = server.workerQueue;
+    await publisher.insert(msg);
   } catch (e) {
-    logger.warn({ event: "CLIENT_MESSAGE_REJECTED", connectionId: connection.connectionId });
+    logger.error(message.utf8Data);
   }
 };

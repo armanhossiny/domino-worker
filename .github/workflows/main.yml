@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ asia, asia2, hetzner ]
+
+    runs-on: [ self-hosted, "${{ matrix.runner }}" ]
+
+    environment: ${{ matrix.runner }}-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > ./.env <<EOF
+          NODE_ENV=${{ vars.NODE_ENV }}
+          PORT=${{ vars.PORT }}
+          
+          REDIS_HOST=${{ vars.REDIS_HOST }}
+          REDIS_PORT=${{ vars.REDIS_PORT }}
+          REDIS_DB=${{ vars.REDIS_DB }}
+          
+          BULL_REDIS_CLUSTER_NODES=${{ vars.BULL_REDIS_CLUSTER_NODES }}
+          EOF
+
+      - name: chmod ci file
+        run: chmod +x ./ci.sh
+
+      - name: Run CI/CD file
+        run: bash ./ci.sh
